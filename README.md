@@ -1,5 +1,5 @@
 # Final Year Project
-My final year project about learned index
+My final year project about learned index whose official name is "A Machine Learning Approach to Building Index Structures"
 ## Main theme of the project
 Compare the setting up time, memory occupation and querying time of different kinds of index/querying method
 ## How to run
