@@ -1,6 +1,5 @@
-
 const express = require('express')
-const app = express()
+const app = express();
 const mongoose = require('mongoose');
 const mongo = require('./environment/mongo');
 const port = 3000
@@ -8,12 +7,15 @@ var gaussian = require('gaussian');
 var AVLTree = require('@yetzt/binary-search-tree').AVLTree;
 var sizeof = require('object-sizeof');
 var dataset = [];
+var testset=[];
 let mean = 0;
-let variance = 1000000;
-let num_nor = 2000;
+let variance = 100000000;
+let num_nor = 20000;
 let low=0;
-let high=1000000;
-let num_uni = 1000000;
+let high=10000000;
+let num_uni = 10000000;
+var distribution;
+
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
@@ -34,7 +36,7 @@ function generatenum_uniform(low, high, num_uni) {
 }
 function generatenum_normal(mean, variance, num_nor) {
     let arr = [];
-    let distribution = gaussian(mean, variance);
+    distribution = gaussian(mean, variance);
     for (let i = 0; i < num_nor; i++) {
 
         let sample = Math.round(distribution.ppf(Math.random()));
@@ -47,6 +49,7 @@ app.get('/generatenum_normal', (req, res) => {
 
     dataset = generatenum_normal(mean, variance, num_nor);
 
+    testset=generatenum_normal(mean, variance, num_nor);
 
 
     console.log(dataset);
@@ -65,7 +68,7 @@ app.get('/hashtable_normal', (req, res) => {
     }
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
-    let testset = generatenum_normal(mean, variance, num_nor);
+  
     let index = 0;
 
     //建index时间
@@ -79,7 +82,7 @@ app.get('/hashtable_normal', (req, res) => {
     let next=(new Date()).valueOf();
     let setuptime=next-prev;
     
-    console.log(prev,next,setuptime,sizeof(map));
+ 
     prev=(new Date()).valueOf();
     while (index < num_nor) {
    
@@ -107,26 +110,29 @@ app.get('/hashtable_normal', (req, res) => {
     obj.prop=prop;
     obj.querytime=querytime;
     obj.setuptime=setuptime;
-    let data = new mongo.Time(obj);
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
     data.save();
     res.send('ok');
 })
 
 app.get('/binarysearch_normal', (req, res) => {
 
+    let set=dataset.slice(0);
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
-    let arr = dataset.sort((a, b) => a - b);
+    let arr = set.sort((a, b) => a - b).slice(0);;
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
+    let sett=dataset.slice(0);
     let prev=(new Date()).valueOf();
-    let array = dataset.sort((a, b) => a - b);
+    let array = sett.sort((a, b) => a - b);
     let next=(new Date()).valueOf();
     let setuptime=next-prev;
     console.log(prev,next,setuptime);
     console.log(array);
     
 
-    let testset = generatenum_normal(mean, variance, num_nor);
+   
     let index = 0;
     function binsearch(nums, target) {
         let low = 0, high = nums.length - 1;
@@ -153,12 +159,26 @@ app.get('/binarysearch_normal', (req, res) => {
     next=(new Date()).valueOf();
     let querytime=next-prev;
     console.log(prev,next,querytime);
+    let obj={};
+    let prop={};
+    prop.mean=mean;
+    prop.variance=variance;
+   
+    obj.method="binarysearch";
+    obj.distribution="normal";
+    obj.num=num_nor;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send('ok');
 })
 
 app.get("/avl_normal",(req,res)=>{
    
-    let testset = generatenum_normal(mean, variance, num_nor);
+
     let index = 0;
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
     let aavl=new AVLTree();
@@ -168,6 +188,7 @@ app.get("/avl_normal",(req,res)=>{
 
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
+    
     let prev=(new Date()).valueOf();
     let avl=new AVLTree();
     for (let i = 0; i < dataset.length; i++) {
@@ -180,61 +201,102 @@ app.get("/avl_normal",(req,res)=>{
     prev=(new Date()).valueOf();
     while (index < num_nor) {
 
-        if (avl.search(testset[index]).length>0) {
+        if (avl.search(testset[index]).length>0)
+        {
             let result = avl.search(testset[index]);
             //console.log(result);
         }
-        else {
-            let result=-1;
-            //console.log("mou");
-        }
-        index++;
+
+    else{
+        let result=-1;
+    }
+    index++;
     }
     next=(new Date()).valueOf();
-    let querytime=next-prev;
+   index=0;
+    while (index < num_nor) {
+
+        if (avl.search(testset[index]).length>0)
+        {
+            let result;
+            //console.log(result);
+        }
+  
+    else{
+        let result=-1;
+    }
+    index++;
+    }
+    let final=(new Date()).valueOf();
+    let querytime=next-prev-final+next;
     console.log(prev,next,querytime);
+    let obj={};
+    let prop={};
+    prop.mean=mean;
+    prop.variance=variance;
+   
+    obj.method="avl";
+    obj.distribution="normal";
+    obj.num=num_nor;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send('ok');
 
 })
 app.get('/trick_normal', (req, res) => {
 
 
-   
+    let settt=dataset.slice(0);
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
-    let arr = dataset.sort((a, b) => a - b);
+    let arr = settt.sort((a, b) => a - b).slice(0);
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
     
-    let testset = generatenum_normal(mean, variance, num_nor);
-    let i= 0;
     
+    let i= 0;
+    let sett=dataset.slice(0);
     let prev=(new Date()).valueOf();
 
 
-    let array = dataset.sort((a, b) => a - b);
+    let array = sett.sort((a, b) => a - b);
     let next=(new Date()).valueOf();
     let setuptime=next-prev;
     console.log(prev,next,setuptime);
 
     function tricksearch(set, index, target) {
-        if (set[index] == target) {
+        if (!set[index])
+        {
+
+        }
+
+        else if  (set[index] < target){
+            while (set[index]<target)
+            {
+                index++;
+
+            }
+            if (set[index]==target)
             return index;
+            else
+            return -1;
+
         }
-        else if (index < 0) {
+        else if (set[index]>target)
+        {
+            while (set[index]<target)
+            {
+                index++;
+            }
+            if (set[index]==target)
+            return index;
+            else
             return -1;
         }
-        else if (index > set.length) {
-            return -1;
-        }
-        else if (set[index] < target && set[index + 1] > target) {
-            return -1;
-        }
-        else if (set[index] < target) {
-            return tricksearch(set, index + 1, target)
-        }
-        else if (set[index] > target) {
-            return tricksearch(set, index - 1, target)
-        }
+        
 
 
     }
@@ -246,8 +308,32 @@ app.get('/trick_normal', (req, res) => {
         i++;
     }
     next=(new Date()).valueOf();
-    let querytime=next-prev;
-    console.log(prev,next,querytime);
+
+    i=0;
+    while (i < num_nor) {
+
+        let result = Math.floor(num_nor * distribution.cdf(testset[i]));
+  
+        //console.log(result, i);
+        i++;
+    }
+    let final=(new Date()).valueOf();
+    let querytime=next-prev-final+next;
+    console.log(prev,next,querytime,final);
+    let obj={};
+    let prop={};
+    prop.mean=mean;
+    prop.variance=variance;
+   
+    obj.method="trick";
+    obj.distribution="normal";
+    obj.num=num_nor;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send("ok");
 })
 
@@ -255,6 +341,7 @@ app.get('/trick_normal', (req, res) => {
 app.get('/generatenum_uniform', (req, res) => {
   
     dataset = generatenum_uniform(low, high, num_uni);
+    testset= generatenum_uniform(low, high, num_uni);
 
 
 
@@ -266,20 +353,22 @@ app.get('/generatenum_uniform', (req, res) => {
 
 //binary search uniform distribution
 app.get('/binarysearch_uniform', (req, res) => {
+    let set=dataset.slice(0);
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
-    let arr = dataset.sort((a, b) => a - b);
+    let arr = set.sort((a, b) => a - b).slice(0);;
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
+    let sett=dataset.slice(0);
     let prev=(new Date()).valueOf();
-    let array = dataset.sort((a, b) => a - b);
+    let array = sett.sort((a, b) => a - b);
     let next=(new Date()).valueOf();
     let setuptime=next-prev;
     console.log(prev,next,setuptime);
-    console.log(array);
+    
  
 
 
-    let testset = generatenum_uniform(low, high, num_uni);
+  
     let index = 0;
     function binsearch(nums, target) {
         let low = 0, high = nums.length - 1;
@@ -306,6 +395,20 @@ app.get('/binarysearch_uniform', (req, res) => {
     next=(new Date()).valueOf();
     let querytime=next-prev;
     console.log(prev,next,querytime);
+    let obj={};
+    let prop={};
+    prop.low=low;
+    prop.high=high;
+   
+    obj.method="binarysearch";
+    obj.distribution="uniform";
+    obj.num=num_uni;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send('ok');
 })
 
@@ -315,36 +418,47 @@ app.get('/trick_uniform', (req, res) => {
 
 
     
-   
+    let set=dataset.slice(0);
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
-    let arr = dataset.sort((a, b) => a - b);
+    let arr = set.sort((a, b) => a - b).slice(0);;
     let usedafter = process.memoryUsage().heapUsed / 1024 / 1024;
     console.log("用了内存"+(usedafter-used)+"Mb");
+    let sett=dataset.slice(0);
     let prev=(new Date()).valueOf();
-    let array = dataset.sort((a, b) => a - b);
+    let array = sett.sort((a, b) => a - b);
     let next=(new Date()).valueOf();
     let setuptime=next-prev;
     console.log(prev,next,setuptime);
-    let testset = generatenum_uniform(low, high, num_uni);
+
     let index = 0;
     function tricksearch(set, index, target) {
-        if (set[index] == target) {
+        if (!set[index])
+        {
+
+        }
+
+        else if  (set[index] < target){
+            while (set[index]<target)
+            {
+                index++;
+
+            }
+            if (set[index]==target)
             return index;
-        }
-        else if (index < 0) {
+            else
             return -1;
+
         }
-        else if (index > set.length) {
+        else if (set[index]>target)
+        {
+            while (set[index]<target)
+            {
+                index++;
+            }
+            if (set[index]==target)
+            return index;
+            else
             return -1;
-        }
-        else if (set[index] < target && set[index + 1] > target) {
-            return -1;
-        }
-        else if (set[index] < target) {
-            return tricksearch(set, index + 1, target)
-        }
-        else if (set[index] > target) {
-            return tricksearch(set, index - 1, target)
         }
 
 
@@ -357,9 +471,32 @@ app.get('/trick_uniform', (req, res) => {
         index++;
     }
     next=(new Date()).valueOf();
-    let querytime=next-prev;
-    console.log(prev,next,querytime);
+    i=0;
+    while (i < num_nor) {
 
+        let result = Math.floor(num_uni * (testset[index] - low) / (high - low));
+  
+        //console.log(result, i);
+        i++;
+    }
+    let final=(new Date()).valueOf();
+    let querytime=next-prev-final+next;
+
+    console.log(prev,next,querytime);
+    let obj={};
+    let prop={};
+    prop.low=low;
+    prop.high=high;
+   
+    obj.method="trick";
+    obj.distribution="uniform";
+    obj.num=num_uni;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send("ok");
 })
 
@@ -370,7 +507,7 @@ app.get('/hashtable_uniform', (req, res) => {
   
 
 
-    let testset = generatenum_uniform(low, high, num_uni);
+ 
     let index = 0;
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
     let mapp = new Map();
@@ -406,13 +543,26 @@ app.get('/hashtable_uniform', (req, res) => {
     next=(new Date()).valueOf();
     let querytime=next-prev;
     console.log(prev,next,querytime);
-
+    let obj={};
+    let prop={};
+    prop.low=low;
+    prop.high=high;
+   
+    obj.method="hashtable";
+    obj.distribution="uniform";
+    obj.num=num_uni;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send('ok');
 })
 
 
 app.get("/avl_uniform",(req,res)=>{
-    let testset = generatenum_uniform(low, high, num_uni);
+
     let index = 0;
     let used = process.memoryUsage().heapUsed / 1024 / 1024;
     let aavl=new AVLTree();
@@ -434,19 +584,50 @@ app.get("/avl_uniform",(req,res)=>{
     prev=(new Date()).valueOf();
     while (index < num_uni) {
 
-        if (avl.search(testset[index]).length>0) {
+        if (avl.search(testset[index]).length>0)
+        {
             let result = avl.search(testset[index]);
-            //console.log(result);
         }
-        else {
+         
+        else{
             let result=-1;
-            //console.log("mou");
         }
+    
         index++;
     }
     next=(new Date()).valueOf();
-    let querytime=next-prev;
+    index=0;
+    while (index < num_uni) {
+
+        if (avl.search(testset[index]).length>0)
+        {
+            let result;
+            //console.log(result);
+        }
+        
+        else{
+            let result=-1;
+        }
+    
+        index++;
+    }
+    let final=(new Date()).valueOf();
+    let querytime=next-prev-final+next;
     console.log(prev,next,querytime);
+    let obj={};
+    let prop={};
+    prop.low=low;
+    prop.high=high;
+   
+    obj.method="avl";
+    obj.distribution="uniform";
+    obj.num=num_uni;
+    obj.prop=prop;
+    obj.querytime=querytime;
+    obj.setuptime=setuptime;
+    obj.size=usedafter-used;
+    let data = new mongo.Result(obj);
+    data.save();
     res.send('ok');
 
 })

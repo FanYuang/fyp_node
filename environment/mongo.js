@@ -19,19 +19,21 @@ conn.on('close', () => {
   console.log('mongo disconnected!');
 })
 
-let Timeschema=new mongoose.Schema({
+let Resultschema=new mongoose.Schema({
     setuptime:Number,
     querytime:Number,
+    size:Number,
     method:String,
     distribution:String,
     num:Number,
     prop:Object
 })
 
-let Time=conn.model('Time', Timeschema);
+
+let Result=conn.model('Result', Resultschema);
 
 module.exports = {
   conn: conn,
-  Time:Time,
+  Result:Result,
 
 };
