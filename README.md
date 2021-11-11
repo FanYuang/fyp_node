@@ -1,4 +1,4 @@
-# A Machine Learning Approach to Building Index Structures
+# A Machine Learning Approach to Building Index Structures(node.js version)
 ## Main theme of the project
 Compare the setting up time, memory occupation and querying time of different kinds of index/querying method
 ## How to run
