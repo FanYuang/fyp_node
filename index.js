@@ -3,7 +3,7 @@ const app = express();
 const mongoose = require('mongoose');
 const mongo = require('./environment/mongo');
 const axios=require('axios');
-const port = 3000
+const port = 4000
 var gaussian = require('gaussian');
 var AVLTree = require('@yetzt/binary-search-tree').AVLTree;
 var sizeof = require('object-sizeof');
@@ -17,7 +17,7 @@ let high=10000000;
 let num_uni = 10000000;
 var distribution;
 const tf = require('@tensorflow/tfjs');
-const tfvis = require('@tensorflow/tfvis');
+
 app.get("/tfboy",(req,res)=>{
    
     res.send('Hello TensorFlow');
